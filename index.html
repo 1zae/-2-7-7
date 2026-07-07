@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飛行紀錄 — 無人機課程學習筆記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+TC:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0A0E14;
+    --surface: #121826;
+    --ink: #E9EDF4;
+    --ink-soft: #B7C0CE;
+    --line: #22293A;
+
+    --c1: #00D9E9;  /* cyan     - 01 aerodynamics */
+    --c2: #7C6CFF;  /* violet   - 02 sensors/nav  */
+    --c3: #00E39B;  /* emerald  - 03 regulations  */
+    --c4: #FF8A3D;  /* amber    - 04 manual flight */
+    --c5: #FF4FA3;  /* magenta  - 05 aerial photo */
+
+    --muted: #6E7A8C;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans TC', 'IBM Plex Sans', sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .display{ font-family: 'Space Grotesk', sans-serif; }
+  .mono{ font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.04em; }
+
+  a{ color: var(--c1); }
+
+  .wrap{ max-width: 880px; margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- Telemetry bar ---------- */
+  .telemetry{
+    border-bottom: 1px solid var(--line);
+    padding: 14px 0;
+    background:
+      linear-gradient(90deg, var(--c1), var(--c2) 25%, var(--c3) 50%, var(--c4) 75%, var(--c5)) top/100% 2px no-repeat,
+      var(--bg);
+  }
+  .telemetry .wrap{
+    display:flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    font-size: 12px; color: var(--muted);
+  }
+  .telemetry .dot{
+    display:inline-block; width:6px; height:6px; border-radius:50%;
+    background: var(--c1); margin-right:6px;
+    box-shadow: 0 0 8px var(--c1);
+    animation: pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{ opacity: 1; } 50%{ opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce){ .telemetry .dot{ animation: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding: 90px 0 70px;
+    border-bottom: 1px solid var(--line);
+    opacity: 0; transform: translateY(10px);
+    animation: rise 0.7s ease forwards 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; top:-120px; right:-120px;
+    width: 380px; height: 380px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(0,217,233,0.18), rgba(124,108,255,0.10) 45%, transparent 70%);
+    pointer-events:none;
+  }
+  @keyframes rise{ to{ opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce){ .hero{ opacity: 1; transform:none; animation: none; } }
+
+  .eyebrow{ font-size: 12px; color: var(--c1); text-transform: uppercase; margin-bottom: 18px; }
+  h1{
+    font-size: clamp(40px, 7vw, 68px);
+    margin: 0 0 20px; font-weight: 600; letter-spacing: -0.01em;
+    background: linear-gradient(90deg, #ffffff, var(--c1) 60%, var(--c2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p{ font-size: 17px; color: var(--ink-soft); max-width: 50ch; margin: 0; position:relative; }
+  .hero-meta{ margin-top: 40px; display:flex; gap: 32px; flex-wrap: wrap; font-size: 12px; color: var(--muted); position:relative; }
+  .hero-meta strong{ display:block; color: var(--ink); font-size: 13px; margin-bottom: 3px; font-weight: 500; }
+
+  /* ---------- Intro ---------- */
+  .intro{
+    padding: 56px 0; border-bottom: 1px solid var(--line);
+    display:grid; grid-template-columns: 120px 1fr; gap: 28px;
+  }
+  .intro .label{ font-size: 12px; color: var(--muted); padding-top: 4px; }
+  .intro p{ margin:0 0 14px; color: var(--ink-soft); }
+  .intro p:last-child{ margin-bottom:0; }
+
+  /* ---------- Log sections ---------- */
+  .log{ padding: 64px 0; border-bottom: 1px solid var(--line); }
+  .log-head{ display:flex; align-items: baseline; gap: 18px; margin-bottom: 22px; }
+  .log-index{ font-size: 13px; white-space: nowrap; }
+  .log-tag{ font-size: 11px; text-transform: uppercase; opacity: 0.85; }
+  .log h2{ font-size: clamp(24px, 4vw, 32px); margin: 6px 0 14px; font-weight: 600; }
+  .log .desc{ max-width: 62ch; color: var(--ink-soft); margin: 0 0 30px; }
+
+  .log.c1 .log-index, .log.c1 .log-tag{ color: var(--c1); }
+  .log.c2 .log-index, .log.c2 .log-tag{ color: var(--c2); }
+  .log.c3 .log-index, .log.c3 .log-tag{ color: var(--c3); }
+  .log.c4 .log-index, .log.c4 .log-tag{ color: var(--c4); }
+  .log.c5 .log-index, .log.c5 .log-tag{ color: var(--c5); }
+
+  /* ---------- Photo grid ---------- */
+  .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid.g2{ grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 640px){ .grid, .grid.g2{ grid-template-columns: 1fr 1fr; } }
+
+  .photo-slot{
+    position: relative; aspect-ratio: 4 / 3;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+  }
+  .log.c1 .photo-slot:hover{ border-color: var(--c1); }
+  .log.c2 .photo-slot:hover{ border-color: var(--c2); }
+  .log.c3 .photo-slot:hover{ border-color: var(--c3); }
+  .log.c4 .photo-slot:hover{ border-color: var(--c4); }
+  .log.c5 .photo-slot:hover{ border-color: var(--c5); }
+
+  .photo-slot img{ width:100%; height:100%; object-fit: cover; display:block; }
+  .photo-slot figcaption{
+    position:absolute; left:0; right:0; bottom:0; padding: 6px 8px;
+    font-size: 11px; color: #fff;
+    background: linear-gradient(transparent, rgba(0,0,0,0.65));
+  }
+  .photo-slot.empty img{ display:none; }
+  .photo-slot.empty::before{
+    content: attr(data-label);
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; padding: 10px; font-size: 12px; color: var(--muted);
+    border: 1px dashed var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .photo-slot.empty figcaption{ display:none; }
+
+  /* ---------- Footer (glass) ---------- */
+  footer{
+    position: relative;
+    padding: 50px 0 70px; display:flex; justify-content: space-between; align-items:center;
+    flex-wrap: wrap; gap: 12px; font-size: 12px;
+    color: rgba(233, 237, 244, 0.85);
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border-top: 1px solid rgba(255,255,255,0.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10);
+  }
+  footer::before{
+    content:"";
+    position:absolute; inset:0 0 auto 0; height:2px;
+    background: linear-gradient(90deg, var(--c1), var(--c2) 25%, var(--c3) 50%, var(--c4) 75%, var(--c5));
+    opacity: 0.9;
+  }
+  footer .mono{
+    color: #fff;
+    text-shadow: 0 0 12px rgba(0, 217, 233, 0.45);
+  }
+</style>
+</head>
+<body>
+
+  <!--
+    ============================================================
+    如何放上你自己的照片(給人看的說明,不影響網頁顯示):
+    1. 在這個 index.html 檔案旁邊,建立一個叫做 images 的資料夾。
+    2. 把你的照片放進 images 資料夾,重新命名成
+       log1-1.jpg、log1-2.jpg、log2-1.jpg … 這樣的檔名,
+       或自己命名後把下面 <img src="images/xxx.jpg"> 的檔名改成一致。
+    3. 沒放照片的格子會自動顯示虛線佔位框,放上照片後會自動被取代。
+    ============================================================
+  -->
+
+  <div class="telemetry">
+    <div class="wrap">
+      <span><span class="dot"></span>STATUS: LEARNING</span>
+      <span>COURSE: 無人機飛行操作與應用</span>
+      <span>LOG COUNT: 05</span>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow mono">FLIGHT LOG / 學習筆記</div>
+      <h1 class="display">飛行紀錄</h1>
+      <p>這裡記錄我在無人機課程中學到的東西——從空氣動力學、感測器原理,到法規、手動操控與空拍攝影。每一段都搭配我自己拍的照片與練習紀錄。</p>
+      <div class="hero-meta mono">
+        <div><strong>紀錄篇數</strong>05</div>
+        <div><strong>課程主題</strong>無人機飛行與應用</div>
+        <div><strong>持續更新</strong>YES</div>
+      </div>
+    </div>
+  </header>
+
+  <section class="intro">
+    <div class="wrap" style="display:contents;">
+      <div class="label mono">ABOUT</div>
+      <div>
+        <p>這門課從最基礎的飛行原理開始教起,一路帶到實際操控無人機、拍出穩定好看的空拍畫面。對我來說最大的收穫,是理解「為什麼」無人機能飛、能穩、能拍——不只是學會按按鈕。</p>
+        <p>下面五段紀錄,大致照課程的順序排列,每一段都放了幾張我自己拍下的練習或空拍照片。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="log c1">
+    <div class="wrap">
+      <div class="log-head">
+        <span class="log-index mono">01 / 05</span>
+        <span class="log-tag mono">AERODYNAMICS</span>
+      </div>
+      <h2 class="display">飛行力學與空氣動力學基礎</h2>
+      <p class="desc">認識升力、推力、阻力與重力這四個作用力,理解旋翼如何產生升力,以及為什麼無人機能在空中穩定懸停。這一段也學到不同機型(四軸、六軸)在穩定性與抗風能力上的差異。</p>
+      <div class="grid">
+        <figure class="photo-slot empty" data-label="照片 1&#10;例如:旋翼特寫">
+          <img src="images/log1-1.jpg" alt="旋翼特寫">
+          <figcaption>旋翼特寫</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 2&#10;例如:課堂筆記">
+          <img src="images/log1-2.jpg" alt="課堂筆記">
+          <figcaption>四力示意筆記</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 3&#10;例如:機身結構">
+          <img src="images/log1-3.jpg" alt="機身結構">
+          <figcaption>機身結構</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="log c2">
+    <div class="wrap">
+      <div class="log-head">
+        <span class="log-index mono">02 / 05</span>
+        <span class="log-tag mono">SENSORS &amp; NAV</span>
+      </div>
+      <h2 class="display">感測器、GPS 與飛控系統</h2>
+      <p class="desc">拆解無人機如何「知道」自己在哪裡、怎麼飛得穩:IMU 慣性感測器、氣壓計、GPS 定位模組,以及飛控板如何整合這些數據做出即時修正。也學到 GPS 訊號不良時的應對方式。</p>
+      <div class="grid g2">
+        <figure class="photo-slot empty" data-label="照片 1&#10;例如:飛控板特寫">
+          <img src="images/log2-1.jpg" alt="飛控板特寫">
+          <figcaption>飛控板特寫</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 2&#10;例如:GPS 訊號畫面">
+          <img src="images/log2-2.jpg" alt="GPS 訊號畫面">
+          <figcaption>GPS 定位畫面</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="log c3">
+    <div class="wrap">
+      <div class="log-head">
+        <span class="log-index mono">03 / 05</span>
+        <span class="log-tag mono">REGULATIONS</span>
+      </div>
+      <h2 class="display">飛安法規與空域申請</h2>
+      <p class="desc">了解無人機的分類與註冊規定、限航區與禁航區的判讀方式,以及飛行前需要申請的程序。這一段偏理論,但是實際飛行前一定要弄清楚的部分。</p>
+      <div class="grid g2">
+        <figure class="photo-slot empty" data-label="照片 1&#10;例如:空域地圖截圖">
+          <img src="images/log3-1.jpg" alt="空域地圖">
+          <figcaption>空域限制地圖</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 2&#10;例如:註冊證明">
+          <img src="images/log3-2.jpg" alt="註冊證明">
+          <figcaption>飛行器註冊</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="log c4">
+    <div class="wrap">
+      <div class="log-head">
+        <span class="log-index mono">04 / 05</span>
+        <span class="log-tag mono">MANUAL FLIGHT</span>
+      </div>
+      <h2 class="display">手動飛行與基礎操控練習</h2>
+      <p class="desc">從搖桿校正、原地懸停練習開始,慢慢加入前後左右移動、定點旋轉,最後練習八字繞行與精準降落。這一段花最多時間,也是最能感覺到自己進步的部分。</p>
+      <div class="grid">
+        <figure class="photo-slot empty" data-label="照片 1&#10;例如:練習場地">
+          <img src="images/log4-1.jpg" alt="練習場地">
+          <figcaption>練習場地</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 2&#10;例如:懸停練習">
+          <img src="images/log4-2.jpg" alt="懸停練習">
+          <figcaption>懸停練習</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 3&#10;例如:降落瞬間">
+          <img src="images/log4-3.jpg" alt="降落瞬間">
+          <figcaption>精準降落</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="log c5" style="border-bottom:none;">
+    <div class="wrap">
+      <div class="log-head">
+        <span class="log-index mono">05 / 05</span>
+        <span class="log-tag mono">AERIAL PHOTOGRAPHY</span>
+      </div>
+      <h2 class="display">空拍攝影與運鏡技巧</h2>
+      <p class="desc">學習構圖三分法在空拍上的應用、如何規劃平滑的運鏡路線(環繞、拉升、跟隨),以及光線與時段對空拍畫面的影響。這裡放的是我最喜歡的幾張成品。</p>
+      <div class="grid">
+        <figure class="photo-slot empty" data-label="照片 1&#10;例如:空拍成品">
+          <img src="images/log5-1.jpg" alt="空拍成品一">
+          <figcaption>空拍成品</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 2&#10;例如:運鏡截圖">
+          <img src="images/log5-2.jpg" alt="運鏡截圖">
+          <figcaption>環繞運鏡</figcaption>
+        </figure>
+        <figure class="photo-slot empty" data-label="照片 3&#10;例如:空拍成品">
+          <img src="images/log5-3.jpg" alt="空拍成品二">
+          <figcaption>空拍成品</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap" style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:12px;">
+      <span class="mono">END OF LOG</span>
+      <span>無人機課程學習筆記 — 持續紀錄中</span>
+    </div>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.photo-slot img').forEach(function(img){
+      img.addEventListener('load', function(){
+        if (img.naturalWidth > 0){ img.closest('.photo-slot').classList.remove('empty'); }
+      });
+      img.addEventListener('error', function(){ img.closest('.photo-slot').classList.add('empty'); });
+    });
+  </script>
+
+</body>
+</html>
